@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Tableau de Bord CashFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a202c, #2d3748, #1a202c);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .nav-gradient {
+            background: linear-gradient(90deg, #1a202c, #2d3748, #1a202c);
+        }
+        .card-gradient {
+            background: linear-gradient(135deg, #2d3748, #1a202c, #2d3748);
+            border: 1px solid #4a5568;
+        }
+        .video-placeholder {
+            background-color: #1a202c;
+            border-radius: 0.75rem;
+            height: 150px; /* Fixed height for placeholders */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: #a0aec0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        /* Overlay de paiement */
+        .payment-overlay, .edit-profile-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .payment-overlay-backdrop, .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Darkened background */
+            backdrop-filter: blur(8px); /* Blur effect */
+        }
+        .payment-overlay-content, .modal-content {
+            background: linear-gradient(135deg, #2d3748, #1a202c);
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 1001;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid #4a5568;
+            position: relative; /* Needed for close button positioning */
+        }
+        .payment-overlay-content input, .modal-content input {
+            background-color: #1a202c;
+            border: 1px solid #4a5568;
+            color: #e2e8f0;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .payment-overlay-content button, .modal-content button {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            transition: background-color 0.2s;
+        }
+        .payment-overlay-content button:hover, .modal-content button:hover {
+            background-color: #2563eb;
+        }
+        .hidden {
+            display: none;
+        }
+        .floating-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000; /* Higher than overlay */
+            animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            10% { opacity: 1; transform: translate(-50%, 0); }
+            90% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000; /* Highest */
+            color: white;
+            font-size: 1.5rem;
+        }
+        .copy-button {
+            background: none;
+            border: none;
+            color: #86efac; /* Light green for copy icon */
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 0.5rem;
+            transition: color 0.2s;
+        }
+        .copy-button:hover {
+            color: #4ade80; /* Brighter green on hover */
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #a0aec0;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .modal-close-btn:hover {
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        Chargement des données...
+    </div>
+
+    <nav class="nav-gradient shadow-lg">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="text-2xl font-bold tracking-wide">Cash<span class="text-blue-400">Flow</span></div>
+            <div class="flex items-center space-x-4">
+                <span id="userFullnameDisplay" class="text-gray-300"></span>
+                <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg font-bold transition">Déconnexion</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="p-6 max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-white">Mon Tableau de Bord</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="card-gradient rounded-xl p-6 shadow-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xl font-semibold text-white">Mes Informations</h2>
+                    <button id="editProfileBtn" class="text-blue-300 hover:text-blue-400 transition">
+                        <i class="fas fa-edit"></i> Modifier
+                    </button>
+                </div>
+                <div class="space-y-3">
+                    <p class="flex items-center gap-2"><i class="fas fa-user text-blue-300"></i> <strong class="text-blue-300">Nom Complet:</strong> <span id="userInfoFullname"></span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-phone text-blue-300"></i> <strong class="text-blue-300">Numéro de Téléphone:</strong> <span id="userInfoPhone"></span></p>
+                    <p class="flex items-center gap-2">
+                        <i class="fas fa-code-branch text-blue-300"></i> <strong class="text-blue-300">Mon Code de Parrainage:</strong> 
+                        <span id="userInfoMySponsorCode"></span>
+                        <button id="copySponsorCodeBtn" class="copy-button" title="Copier le code de parrainage">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </p>
+                    <p class="flex items-center gap-2"><i class="fas fa-handshake text-blue-300"></i> <strong class="text-blue-300">Parrain:</strong> <span id="userInfoParentSponsorCode"></span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-wallet text-blue-300"></i> <strong class="text-blue-300">Statut Paiement:</strong> <span id="userInfoPaymentStatus"></span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-300"></i> <strong class="text-blue-300">Statut Validation:</strong> <span id="userInfoValidationStatus"></span></p>
+                </div>
+            </div>
+            <div class="card-gradient rounded-xl p-6 shadow-lg">
+                <h2 class="text-xl font-semibold mb-3 text-white">Mes Gains</h2>
+                <div class="space-y-3">
+                    <p class="flex items-center gap-2"><i class="fas fa-users text-emerald-400"></i> <strong class="text-emerald-400">Nombre de filleuls:</strong> <span id="userDirectReferrals">0</span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-money-bill-wave text-emerald-400"></i> <strong class="text-emerald-400">Gains potentiels:</strong> <span id="userPotentialEarnings">0 FCFA</span></p>
+                </div>
+                <p class="text-gray-400 mt-4 text-sm">Cette section affichera vos gains et vos statistiques de parrainage. (Nécessite une logique backend pour les calculs exacts).</p>
+            </div>
+        </div>
+
+        <div class="card-gradient rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-white">Contenus Vidéo</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="videoContent">
+                <!-- Video placeholders -->
+                <div class="video-placeholder">Film / Série 1</div>
+                <div class="video-placeholder">Film / Série 2</div>
+                <div class="video-placeholder">Film / Série 3</div>
+                <div class="video-placeholder">Film / Série 4</div>
+                <div class="video-placeholder">Film / Série 5</div>
+                <div class="video-placeholder">Film / Série 6</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Payment Overlay -->
+    <div id="paymentOverlay" class="payment-overlay hidden">
+        <div class="payment-overlay-backdrop"></div>
+        <div class="payment-overlay-content">
+            <h2 id="overlayTitle" class="text-2xl font-bold mb-4 text-white">Activez votre accès aux contenus</h2>
+            <p id="overlayMessage" class="text-gray-300 mb-6">
+                Pour débloquer l'accès à tous nos films et séries, veuillez effectuer un paiement de <strong class="text-emerald-400">500 FCFA</strong> via MoMo SSUD au numéro : <strong class="text-blue-300">01 23 45 67 89</strong>.
+                <br><br>
+                Dès que le paiement est effectué, veuillez saisir l'ID de transaction ci-dessous et cliquer sur "Fait" pour nous en informer.
+            </p>
+            <div id="transactionInputSection">
+                <input type="text" id="transactionIdInput" placeholder="Saisir l'ID de transaction ici" class="focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="submitTransactionBtn">Fait</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="edit-profile-modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeEditProfileModalBtn"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-bold mb-4 text-white">Modifier mon profil</h2>
+            <div class="text-left">
+                <label for="editFullnameInput" class="block text-gray-300 text-sm font-bold mb-2">Nom Complet:</label>
+                <input type="text" id="editFullnameInput" class="focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button id="saveProfileBtn">Enregistrer les modifications</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAmujy93verunMDtdCFtZYtIMWAkx7DWsw",
+            authDomain: "cashflow-ca20b.firebaseapp.com",
+            projectId: "cashflow-ca20b",
+            storageBucket: "cashflow-ca20b.firebasestorage.app",
+            messagingSenderId: "1075000611455",
+            appId: "1:1075000611455:web:a142c7509e606046a4a54a"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const usersCollection = db.collection('users');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userId = sessionStorage.getItem('userId');
+            const userLoggedIn = sessionStorage.getItem('userLoggedIn');
+            const userFullnameDisplay = document.getElementById('userFullnameDisplay');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const paymentOverlay = document.getElementById('paymentOverlay');
+            const overlayTitle = document.getElementById('overlayTitle');
+            const overlayMessage = document.getElementById('overlayMessage');
+            const transactionIdInput = document.getElementById('transactionIdInput');
+            const submitTransactionBtn = document.getElementById('submitTransactionBtn');
+            const transactionInputSection = document.getElementById('transactionInputSection');
+            const videoContent = document.getElementById('videoContent');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            // User Info Display elements
+            const userInfoFullname = document.getElementById('userInfoFullname');
+            const userInfoPhone = document.getElementById('userInfoPhone');
+            const userInfoMySponsorCode = document.getElementById('userInfoMySponsorCode');
+            const userInfoParentSponsorCode = document.getElementById('userInfoParentSponsorCode');
+            const userInfoPaymentStatus = document.getElementById('userInfoPaymentStatus');
+            const userInfoValidationStatus = document.getElementById('userInfoValidationStatus');
+            const copySponsorCodeBtn = document.getElementById('copySponsorCodeBtn'); 
+            const userDirectReferrals = document.getElementById('userDirectReferrals');
+            const userPotentialEarnings = document.getElementById('userPotentialEarnings');
+
+            // Edit Profile Modal elements
+            const editProfileBtn = document.getElementById('editProfileBtn');
+            const editProfileModal = document.getElementById('editProfileModal');
+            const closeEditProfileModalBtn = document.getElementById('closeEditProfileModalBtn');
+            const editFullnameInput = document.getElementById('editFullnameInput');
+            const saveProfileBtn = document.getElementById('saveProfileBtn');
+
+            // --- Vérification de l'authentification de l'utilisateur ---
+            if (!userLoggedIn || userLoggedIn !== 'true' || !userId) {
+                window.location.href = '../auth.html'; // Rediriger vers la page de connexion utilisateur
+                return;
+            }
+
+            // --- Fonction de déconnexion ---
+            logoutBtn.addEventListener('click', () => {
+                sessionStorage.removeItem('userLoggedIn');
+                sessionStorage.removeItem('userId');
+                sessionStorage.removeItem('userPhoneNumber');
+                window.location.href = '../auth.html';
+            });
+
+            // --- Charger et afficher les données de l'utilisateur ---
+            async function loadUserData() {
+                loadingOverlay.classList.remove('hidden');
+                try {
+                    const userDoc = await usersCollection.doc(userId).get();
+                    if (!userDoc.exists) {
+                        showMessage("Votre compte n'a pas été trouvé. Veuillez vous reconnecter.", "red");
+                        sessionStorage.clear();
+                        window.location.href = '../auth.html';
+                        return;
+                    }
+
+                    const userData = userDoc.data();
+                    userFullnameDisplay.textContent = userData.fullname || 'Utilisateur';
+
+                    // Afficher les informations de l'utilisateur
+                    userInfoFullname.textContent = userData.fullname || 'N/A';
+                    userInfoPhone.textContent = userData.phoneNumber || 'N/A';
+                    userInfoMySponsorCode.textContent = userData.mySponsorCode || 'N/A';
+                    userInfoParentSponsorCode.textContent = userData.parentSponsorCode || 'N/A';
+                    userInfoPaymentStatus.textContent = getPaymentStatusText(userData.paymentStatus);
+                    userInfoValidationStatus.textContent = getValidationStatusText(userData.validationStatus);
+                    userDirectReferrals.textContent = userData.directReferralsCount || 0; // Display direct referrals
+                    // Placeholder for potential earnings - requires backend logic
+                    userPotentialEarnings.textContent = `${(userData.directReferralsCount || 0) * 100} FCFA`; // Example calculation
+
+                    // Gérer l'overlay et l'accès au contenu
+                    handleContentAccess(userData);
+
+                } catch (error) {
+                    console.error("Erreur lors du chargement des données utilisateur:", error);
+                    showMessage("Erreur lors du chargement de vos données. Veuillez réessayer.", "red");
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                }
+            }
+
+            function getPaymentStatusText(status) {
+                switch (status) {
+                    case 'unpaid': return 'Non Payé';
+                    case 'pending_validation': return 'Paiement en attente de vérification';
+                    case 'paid_momo_ssud_validated': return 'Payé et Validé';
+                    default: return 'Inconnu';
+                }
+            }
+
+            function getValidationStatusText(status) {
+                switch (status) {
+                    case 'pending': return 'En attente';
+                    case 'validated': return 'Validé';
+                    default: return 'Inconnu';
+                }
+            }
+
+            function handleContentAccess(userData) {
+                if (userData.paymentStatus === 'paid_momo_ssud_validated' && userData.validationStatus === 'validated') {
+                    // Accès accordé : cacher l'overlay
+                    paymentOverlay.classList.add('hidden');
+                    videoContent.style.filter = 'none'; // Supprimer le flou des vidéos
+                    showMessage("Accès aux contenus vidéo activé !", "green");
+                } else if (userData.paymentStatus === 'pending_validation') {
+                    // Paiement soumis, en attente de validation
+                    paymentOverlay.classList.remove('hidden');
+                    videoContent.style.filter = 'blur(5px)'; // Flouer les vidéos
+                    overlayTitle.textContent = "Paiement en attente de vérification";
+                    overlayMessage.innerHTML = `
+                        Votre paiement a été soumis avec l'ID de transaction : <strong class="text-blue-300">${userData.transactionId || 'N/A'}</strong>.
+                        <br><br>
+                        Veuillez patienter environ 30 minutes pendant que l'administrateur vérifie votre transaction et active votre accès.
+                    `;
+                    transactionInputSection.classList.add('hidden'); // Cacher le champ de saisie
+                } else {
+                    // Pas encore payé ou paiement invalide
+                    paymentOverlay.classList.remove('hidden');
+                    videoContent.style.filter = 'blur(5px)'; // Flouer les vidéos
+                    overlayTitle.textContent = "Activez votre accès aux contenus";
+                    overlayMessage.innerHTML = `
+                        Pour débloquer l'accès à tous nos films et séries, veuillez effectuer un paiement de <strong class="text-emerald-400">500 FCFA</strong> via MoMo SSUD au numéro : <strong class="text-blue-300">01 23 45 67 89</strong>.
+                        <br><br>
+                        Dès que le paiement est effectué, veuillez saisir l'ID de transaction ci-dessous et cliquer sur "Fait" pour nous en informer.
+                    `;
+                    transactionInputSection.classList.remove('hidden'); // Afficher le champ de saisie
+                }
+            }
+
+            // --- Gérer la soumission de l'ID de transaction ---
+            submitTransactionBtn.addEventListener('click', async () => {
+                const transactionId = transactionIdInput.value.trim();
+
+                if (!transactionId) {
+                    showMessage("Veuillez saisir un ID de transaction.", "red");
+                    return;
+                }
+
+                loadingOverlay.classList.remove('hidden');
+                submitTransactionBtn.disabled = true;
+                submitTransactionBtn.textContent = "Envoi...";
+
+                try {
+                    await usersCollection.doc(userId).update({
+                        paymentStatus: 'pending_validation',
+                        transactionId: transactionId,
+                        submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    showMessage("ID de transaction envoyé avec succès ! Veuillez patienter pour la validation.", "green");
+                    loadUserData(); // Recharger les données pour mettre à jour l'overlay
+                } catch (error) {
+                    console.error("Erreur lors de l'envoi de l'ID de transaction:", error);
+                    showMessage("Erreur lors de l'envoi de l'ID de transaction. Veuillez réessayer.", "red");
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                    submitTransactionBtn.disabled = false;
+                    submitTransactionBtn.textContent = "Fait";
+                }
+            });
+
+            // --- Copy Sponsor Code function ---
+            copySponsorCodeBtn.addEventListener('click', () => {
+                const sponsorCode = userInfoMySponsorCode.textContent;
+                if (sponsorCode && sponsorCode !== 'N/A') {
+                    // Use modern Clipboard API if available, fallback to execCommand
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(sponsorCode).then(() => {
+                            showMessage("Code de parrainage copié !", "green");
+                        }).catch(err => {
+                            console.error('Could not copy text: ', err);
+                            showMessage("Échec de la copie. Veuillez copier manuellement.", "red");
+                        });
+                    } else {
+                        // Fallback for older browsers or environments without Clipboard API
+                        const tempInput = document.createElement('input');
+                        document.body.appendChild(tempInput);
+                        tempInput.value = sponsorCode;
+                        tempInput.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempInput);
+                        showMessage("Code de parrainage copié ! (via fallback)", "green");
+                    }
+                } else {
+                    showMessage("Aucun code de parrainage à copier.", "red");
+                }
+            });
+
+            // --- Edit Profile Modal Logic ---
+            editProfileBtn.addEventListener('click', () => {
+                editFullnameInput.value = userInfoFullname.textContent; // Pre-fill current name
+                editProfileModal.classList.remove('hidden');
+            });
+
+            closeEditProfileModalBtn.addEventListener('click', () => {
+                editProfileModal.classList.add('hidden');
+            });
+
+            saveProfileBtn.addEventListener('click', async () => {
+                const newFullname = editFullnameInput.value.trim();
+                if (!newFullname) {
+                    showMessage("Le nom complet ne peut pas être vide.", "red");
+                    return;
+                }
+
+                loadingOverlay.classList.remove('hidden');
+                saveProfileBtn.disabled = true;
+                saveProfileBtn.textContent = "Enregistrement...";
+
+                try {
+                    await usersCollection.doc(userId).update({
+                        fullname: newFullname
+                    });
+                    showMessage("Nom complet mis à jour avec succès !", "green");
+                    editProfileModal.classList.add('hidden');
+                    loadUserData(); // Reload data to update displayed name
+                } catch (error) {
+                    console.error("Erreur lors de la mise à jour du profil:", error);
+                    showMessage("Erreur lors de la mise à jour du profil. Veuillez réessayer.", "red");
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                    saveProfileBtn.disabled = false;
+                    saveProfileBtn.textContent = "Enregistrer les modifications";
+                }
+            });
+
+
+            // Load data on startup
+            loadUserData();
+
+            // Listen for real-time changes on the user document
+            usersCollection.doc(userId).onSnapshot((doc) => {
+                if (doc.exists) {
+                    const userData = doc.data();
+                    // Update user info display
+                    userInfoFullname.textContent = userData.fullname || 'N/A';
+                    userInfoPhone.textContent = userData.phoneNumber || 'N/A';
+                    userInfoMySponsorCode.textContent = userData.mySponsorCode || 'N/A';
+                    userInfoParentSponsorCode.textContent = userData.parentSponsorCode || 'N/A';
+                    userInfoPaymentStatus.textContent = getPaymentStatusText(userData.paymentStatus);
+                    userInfoValidationStatus.textContent = getValidationStatusText(userData.validationStatus);
+                    userDirectReferrals.textContent = userData.directReferralsCount || 0; // Update direct referrals
+                    userPotentialEarnings.textContent = `${(userData.directReferralsCount || 0) * 100} FCFA`; // Update potential earnings
+                    // Update overlay and content access
+                    handleContentAccess(userData);
+                } else {
+                    // If document no longer exists (e.g., deleted by admin)
+                    showMessage("Votre compte n'existe plus. Déconnexion...", "red");
+                    sessionStorage.clear();
+                    setTimeout(() => window.location.href = './auth.html', 2000);
+                }
+            }, (error) => {
+                console.error("Erreur d'écoute Firestore:", error);
+                showMessage("Erreur de connexion en temps réel. Veuillez recharger la page.", "red");
+            });
+
+            // Function to display floating messages
+            function showMessage(message, type) {
+                const existingMsg = document.querySelector('.floating-message');
+                if (existingMsg) existingMsg.remove();
+
+                const messageDiv = document.createElement("div");
+                messageDiv.className = `floating-message px-6 py-3 rounded-lg shadow-lg ${type === "green" ? "bg-green-600" : (type === "orange" ? "bg-orange-500" : "bg-red-600")} text-white`;
+                messageDiv.textContent = message;
+
+                document.body.appendChild(messageDiv);
+
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

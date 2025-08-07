@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Flow Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .bg-gradient-custom {
+            background: linear-gradient(135deg, #0f172a, #1e293b, #0c4a6e);
+        }
+        .nav-gradient {
+            background: linear-gradient(90deg, #1a202c, #2d3748, #1a202c);
+        }
+        .card-gradient {
+            background: linear-gradient(135deg, #2d3748, #1a202c, #2d3748);
+            border: 1px solid #4a5568;
+        }
+        .action-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            transition: all 0.2s ease-in-out;
+        }
+        .validate-btn {
+            background-color: #38a169; /* Green */
+            color: white;
+        }
+        .validate-btn:hover {
+            background-color: #2f855a;
+            transform: translateY(-1px);
+        }
+        .delete-btn {
+            background-color: #e53e3e; /* Red */
+            color: white;
+        }
+        .delete-btn:hover {
+            background-color: #c53030;
+            transform: translateY(-1px);
+        }
+        .edit-btn {
+            background-color: #3b82f6; /* Blue */
+            color: white;
+        }
+        .edit-btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+        .logout-btn {
+            background-color: #ef4444; /* Red */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            transition: all 0.2s ease-in-out;
+        }
+        .logout-btn:hover {
+            background-color: #dc2626;
+            transform: translateY(-1px);
+        }
+        .table-header {
+            background-color: #2d3748;
+            color: #a0aec0;
+        }
+        .table-row:nth-child(even) {
+            background-color: #1a202c;
+        }
+        .table-row:nth-child(odd) {
+            background-color: #2d3748;
+        }
+        .floating-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000; /* Higher than modals */
+            animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            10% { opacity: 1; transform: translate(-50%, 0); }
+            90% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+        .loading-overlay, .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            color: white;
+            font-size: 1.5rem;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #2d3748, #1a202c);
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 2001;
+            max-width: 500px; /* Default max-width */
+            width: 90%; /* Responsive width */
+            border: 1px solid #4a5568;
+            position: relative;
+        }
+        /* Responsive adjustments for modals */
+        @media (min-width: 640px) { /* sm breakpoint */
+            .modal-content {
+                max-width: 600px; /* Larger max-width on sm screens */
+            }
+        }
+        @media (min-width: 768px) { /* md breakpoint */
+            .modal-content {
+                max-width: 700px; /* Even larger max-width on md screens */
+            }
+        }
+
+        /* Removed generic .modal-content input/select/button styles */
+
+        .input-field {
+            background-color: #1a202c;
+            border: 1px solid #4a5568;
+            color: #e2e8f0;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            /* margin-top will be handled by space-y-4 on the parent form, or specific mb-2 on label */
+        }
+
+        .auth-button { /* Used for saveUserChangesBtn */
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .auth-button:hover {
+            background-color: #2563eb;
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #a0aec0;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .modal-close-btn:hover {
+            color: #e2e8f0;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-custom text-gray-100 min-h-screen">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        Chargement des données...
+    </div>
+
+    <nav class="nav-gradient shadow-lg">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="text-2xl font-bold tracking-wide">Cash<span class="text-blue-400">Flow</span> Admin</div>
+            <div class="flex items-center space-x-4">
+                <span id="adminUsernameDisplay" class="text-gray-300"></span>
+                <button id="logoutBtn" class="logout-btn">Déconnexion</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="p-6 max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-white">Tableau de Bord</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="card-gradient rounded-xl p-6 flex flex-col items-center shadow-lg">
+                <i class="fas fa-users text-blue-400 text-2xl mb-2"></i>
+                <span class="text-gray-400 mb-2">Total inscrits</span>
+                <span id="totalInscrits" class="text-3xl font-bold text-white drop-shadow">0</span>
+            </div>
+            <div class="card-gradient rounded-xl p-6 flex flex-col items-center shadow-lg">
+                <i class="fas fa-hourglass-half text-amber-400 text-2xl mb-2"></i>
+                <span class="text-gray-400 mb-2">Validations en attente</span>
+                <span id="validationsAttente" class="text-3xl font-bold text-amber-400 drop-shadow">0</span>
+            </div>
+            <div class="card-gradient rounded-xl p-6 flex flex-col items-center shadow-lg">
+                <i class="fas fa-check-double text-emerald-400 text-2xl mb-2"></i>
+                <span class="text-gray-400 mb-2">Paiements Validés</span>
+                <span id="totalValidatedPayments" class="text-3xl font-bold text-emerald-400 drop-shadow">0</span>
+            </div>
+            <div class="card-gradient rounded-xl p-6 flex flex-col items-center shadow-lg">
+                <i class="fas fa-money-bill-wave text-purple-400 text-2xl mb-2"></i>
+                <span class="text-gray-400 mb-2">Gains Totaux Estimés</span>
+                <span id="totalEstimatedEarnings" class="text-3xl font-bold text-purple-400 drop-shadow">0 FCFA</span>
+            </div>
+        </div>
+
+        <div class="card-gradient rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-white">Gestion des Utilisateurs</h2>
+            <div class="mb-4 flex flex-col sm:flex-row gap-4">
+                <input type="text" id="searchUserInput" placeholder="Rechercher par nom ou numéro..."
+                       class="w-full sm:w-1/2 px-4 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button id="refreshUsersBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-bold transition">
+                    <i class="fas fa-sync-alt"></i> Actualiser
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-left rounded-lg overflow-hidden">
+                    <thead>
+                        <tr class="table-header">
+                            <th class="py-3 px-4">Nom & Prénom</th>
+                            <th class="py-3 px-4">Téléphone</th>
+                            <th class="py-3 px-4">Code Parrainage</th>
+                            <th class="py-3 px-4">Parrain</th>
+                            <th class="py-3 px-4">Statut Paiement</th>
+                            <th class="py-3 px-4">Statut Validation</th>
+                            <th class="py-3 px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allUsersTable" class="divide-y divide-gray-700">
+                        <!-- All user rows will be inserted here -->
+                    </tbody>
+                </table>
+                <p id="noAllUsersMessage" class="text-gray-400 text-center py-4 hidden">Aucun utilisateur trouvé.</p>
+            </div>
+        </div>
+
+        <div class="card-gradient rounded-xl shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4 text-white">Utilisateurs avec Paiements en Attente</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-left rounded-lg overflow-hidden">
+                    <thead>
+                        <tr class="table-header">
+                            <th class="py-3 px-4">Nom & Prénom</th>
+                            <th class="py-3 px-4">Téléphone</th>
+                            <th class="py-3 px-4">ID Transaction</th>
+                            <th class="py-3 px-4">Statut Paiement</th>
+                            <th class="py-3 px-4">Statut Validation</th>
+                            <th class="py-3 px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingPaymentsTable" class="divide-y divide-gray-700">
+                        <!-- Pending payment user rows will be inserted here -->
+                    </tbody>
+                </table>
+                <p id="noPendingPaymentsMessage" class="text-gray-400 text-center py-4 hidden">Aucun paiement en attente de validation.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Generic Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3 id="confirmModalTitle" class="text-xl font-bold mb-4 text-white">Confirmer l'action</h3>
+            <p id="confirmModalMessage" class="text-gray-300 mb-6">Êtes-vous sûr de vouloir effectuer cette action ?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirmModalCancelBtn" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg font-bold transition">Annuler</button>
+                <button id="confirmModalConfirmBtn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-bold transition">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeEditUserModalBtn"><i class="fas fa-times"></i></button>
+            <h2 class="text-2xl font-bold mb-4 text-white">Modifier l'utilisateur</h2>
+            <form id="editUserForm" class="text-left space-y-4">
+                <div>
+                    <label for="editFullname" class="block text-gray-300 text-sm font-bold mb-2">Nom Complet:</label>
+                    <input type="text" id="editFullname" name="fullname" class="input-field">
+                </div>
+                <div>
+                    <label for="editPhoneNumber" class="block text-gray-300 text-sm font-bold mb-2">Numéro de Téléphone:</label>
+                    <input type="text" id="editPhoneNumber" name="phoneNumber" class="input-field" disabled>
+                </div>
+                <div>
+                    <label for="editMySponsorCode" class="block text-gray-300 text-sm font-bold mb-2">Mon Code de Parrainage:</label>
+                    <input type="text" id="editMySponsorCode" name="mySponsorCode" class="input-field" disabled>
+                </div>
+                <div>
+                    <label for="editParentSponsorCode" class="block text-gray-300 text-sm font-bold mb-2">Parrain:</label>
+                    <input type="text" id="editParentSponsorCode" name="parentSponsorCode" class="input-field">
+                </div>
+                <div>
+                    <label for="editPaymentStatus" class="block text-gray-300 text-sm font-bold mb-2">Statut Paiement:</label>
+                    <select id="editPaymentStatus" name="paymentStatus" class="input-field">
+                        <option value="unpaid">Non Payé</option>
+                        <option value="pending_validation">Paiement en attente</option>
+                        <option value="paid_momo_ssud_validated">Payé et Validé</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="editValidationStatus" class="block text-gray-300 text-sm font-bold mb-2">Statut Validation:</label>
+                    <select id="editValidationStatus" name="validationStatus" class="input-field">
+                        <option value="pending">En attente</option>
+                        <option value="validated">Validé</option>
+                    </select>
+                </div>
+                <button type="submit" id="saveUserChangesBtn" class="w-full auth-button">Enregistrer les modifications</button>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+        // Configuration Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAmujy93verunMDtdCFtZYtIMWAkx7DWsw",
+            authDomain: "cashflow-ca20b.firebaseapp.com",
+            projectId: "cashflow-ca20b",
+            storageBucket: "cashflow-ca20b.firebasestorage.app",
+            messagingSenderId: "1075000611455",
+            appId: "1:1075000611455:web:a142c7509e606046a4a54a"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const usersCollection = db.collection('users');
+        const adminsCollection = db.collection('admins');
+
+        let currentEditingUserId = null; // To store the ID of the user being edited
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const totalInscritsSpan = document.getElementById('totalInscrits');
+            const validationsAttenteSpan = document.getElementById('validationsAttente');
+            const totalValidatedPaymentsSpan = document.getElementById('totalValidatedPayments');
+            const totalEstimatedEarningsSpan = document.getElementById('totalEstimatedEarnings');
+            const pendingPaymentsTableBody = document.getElementById('pendingPaymentsTable');
+            const noPendingPaymentsMessage = document.getElementById('noPendingPaymentsMessage');
+            const allUsersTableBody = document.getElementById('allUsersTable');
+            const noAllUsersMessage = document.getElementById('noAllUsersMessage');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const adminUsernameDisplay = document.getElementById('adminUsernameDisplay');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const searchUserInput = document.getElementById('searchUserInput');
+            const refreshUsersBtn = document.getElementById('refreshUsersBtn');
+
+            // Modals
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmModalTitle = document.getElementById('confirmModalTitle');
+            const confirmModalMessage = document.getElementById('confirmModalMessage');
+            const confirmModalCancelBtn = document.getElementById('confirmModalCancelBtn');
+            const confirmModalConfirmBtn = document.getElementById('confirmModalConfirmBtn');
+
+            const editUserModal = document.getElementById('editUserModal');
+            const closeEditUserModalBtn = document.getElementById('closeEditUserModalBtn');
+            const editUserForm = document.getElementById('editUserForm');
+            const editFullnameInput = document.getElementById('editFullname');
+            const editPhoneNumberInput = document.getElementById('editPhoneNumber');
+            const editMySponsorCodeInput = document.getElementById('editMySponsorCode');
+            const editParentSponsorCodeInput = document.getElementById('editParentSponsorCode');
+            const editPaymentStatusSelect = document.getElementById('editPaymentStatus');
+            const editValidationStatusSelect = document.getElementById('editValidationStatus');
+            const saveUserChangesBtn = document.getElementById('saveUserChangesBtn');
+
+
+            // --- Admin Authentication ---
+            const adminLoggedIn = sessionStorage.getItem('adminLoggedIn');
+            const adminUsername = sessionStorage.getItem('adminUsername');
+
+            if (!adminLoggedIn || adminLoggedIn !== 'true' || !adminUsername) {
+                window.location.href = './admin-auth.html';
+                return;
+            }
+
+            adminUsernameDisplay.textContent = `Bienvenue, ${adminUsername}`;
+
+            // --- Logout function ---
+            logoutBtn.addEventListener('click', () => {
+                sessionStorage.removeItem('adminLoggedIn');
+                sessionStorage.removeItem('adminUsername');
+                window.location.href = './admin-auth.html';
+            });
+
+            // --- Dashboard Data Fetching ---
+            async function fetchDashboardData() {
+                loadingOverlay.classList.remove('hidden');
+                try {
+                    const allUsersSnapshot = await usersCollection.get();
+                    const allUsers = allUsersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    totalInscritsSpan.textContent = allUsers.length;
+
+                    const pendingValidations = allUsers.filter(user => user.paymentStatus === 'pending_validation');
+                    validationsAttenteSpan.textContent = pendingValidations.length;
+
+                    const validatedPayments = allUsers.filter(user => user.paymentStatus === 'paid_momo_ssud_validated');
+                    totalValidatedPaymentsSpan.textContent = validatedPayments.length;
+
+                    // Calculate estimated total earnings (e.g., 100 FCFA per validated referral)
+                    let totalEarnings = 0;
+                    validatedPayments.forEach(user => {
+                        // Assuming each validated user contributes to a fixed earning for the platform
+                        // Or, if tracking referral earnings, sum them up here.
+                        // For simplicity, let's say each validated user represents 100 FCFA in platform revenue.
+                        totalEarnings += 100; // Example: 100 FCFA per validated user
+                    });
+                    totalEstimatedEarningsSpan.textContent = `${totalEarnings} FCFA`;
+
+
+                    renderAllUsersTable(allUsers);
+                    renderPendingPaymentsTable(pendingValidations);
+
+                } catch (error) {
+                    console.error("Erreur lors du chargement des données du tableau de bord:", error);
+                    showMessage("Erreur lors du chargement des données. Veuillez réessayer.", "red");
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                }
+            }
+
+            function getPaymentStatusText(status) {
+                switch (status) {
+                    case 'unpaid': return 'Non Payé';
+                    case 'pending_validation': return 'Paiement en attente';
+                    case 'paid_momo_ssud_validated': return 'Payé et Validé';
+                    default: return 'Inconnu';
+                }
+            }
+
+            function getValidationStatusText(status) {
+                switch (status) {
+                    case 'pending': return 'En attente';
+                    case 'validated': return 'Validé';
+                    default: return 'Inconnu';
+                }
+            }
+
+            // --- Render All Users Table ---
+            function renderAllUsersTable(users) {
+                allUsersTableBody.innerHTML = '';
+                const searchTerm = searchUserInput.value.toLowerCase();
+                const filteredUsers = users.filter(user =>
+                    (user.fullname && user.fullname.toLowerCase().includes(searchTerm)) ||
+                    (user.phoneNumber && user.phoneNumber.includes(searchTerm))
+                );
+
+                if (filteredUsers.length === 0) {
+                    noAllUsersMessage.classList.remove('hidden');
+                    return;
+                }
+                noAllUsersMessage.classList.add('hidden');
+
+                filteredUsers.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    row.innerHTML = `
+                        <td class="py-2 px-4">${user.fullname || 'N/A'}</td>
+                        <td class="py-2 px-4">${user.phoneNumber || 'N/A'}</td>
+                        <td class="py-2 px-4">${user.mySponsorCode || 'N/A'}</td>
+                        <td class="py-2 px-4">${user.parentSponsorCode || 'N/A'}</td>
+                        <td class="py-2 px-4">${getPaymentStatusText(user.paymentStatus)}</td>
+                        <td class="py-2 px-4">${getValidationStatusText(user.validationStatus)}</td>
+                        <td class="py-2 px-4 space-x-2">
+                            <button data-id="${user.id}" class="edit-btn action-button"><i class="fas fa-edit"></i></button>
+                            <button data-id="${user.id}" class="delete-btn action-button"><i class="fas fa-trash-alt"></i></button>
+                        </td>
+                    `;
+                    allUsersTableBody.appendChild(row);
+                });
+
+                allUsersTableBody.querySelectorAll('.edit-btn').forEach(button => {
+                    button.addEventListener('click', (e) => openEditUserModal(e.target.closest('button').dataset.id));
+                });
+                allUsersTableBody.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (e) => showConfirmationModal('Supprimer l\'utilisateur', 'Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.', () => deleteUser(e.target.closest('button').dataset.id)));
+                });
+            }
+
+            // --- Render Pending Payments Table ---
+            function renderPendingPaymentsTable(pendingUsers) {
+                pendingPaymentsTableBody.innerHTML = '';
+                if (pendingUsers.length === 0) {
+                    noPendingPaymentsMessage.classList.remove('hidden');
+                    return;
+                }
+                noPendingPaymentsMessage.classList.add('hidden');
+
+                pendingUsers.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    row.innerHTML = `
+                        <td class="py-2 px-4">${user.fullname || 'N/A'}</td>
+                        <td class="py-2 px-4">${user.phoneNumber || 'N/A'}</td>
+                        <td class="py-2 px-4">${user.transactionId || 'N/A'}</td>
+                        <td class="py-2 px-4">${getPaymentStatusText(user.paymentStatus)}</td>
+                        <td class="py-2 px-4">${getValidationStatusText(user.validationStatus)}</td>
+                        <td class="py-2 px-4 space-x-2">
+                            <button data-id="${user.id}" class="validate-btn action-button">Valider</button>
+                            <button data-id="${user.id}" class="delete-btn action-button">Supprimer</button>
+                        </td>
+                    `;
+                    pendingPaymentsTableBody.appendChild(row);
+                });
+
+                pendingPaymentsTableBody.querySelectorAll('.validate-btn').forEach(button => {
+                    button.addEventListener('click', (e) => showConfirmationModal('Valider le paiement', 'Êtes-vous sûr de vouloir valider le paiement de cet utilisateur ?', () => validateUserPayment(e.target.closest('button').dataset.id)));
+                });
+                pendingPaymentsTableBody.querySelectorAll('.delete-btn').forEach(button => {
+                    button.addEventListener('click', (e) => showConfirmationModal('Supprimer l\'utilisateur', 'Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.', () => deleteUser(e.target.closest('button').dataset.id)));
+                });
+            }
+
+            // --- Action Functions ---
+            async function validateUserPayment(userId) {
+                loadingOverlay.classList.remove('hidden');
+                try {
+                    await usersCollection.doc(userId).update({
+                        validationStatus: 'validated',
+                        paymentStatus: 'paid_momo_ssud_validated'
+                    });
+                    showMessage("Paiement utilisateur validé avec succès !", "green");
+                    // No need to call fetchDashboardData() here, onSnapshot will handle it
+                } catch (error) {
+                    console.error("Erreur lors de la validation du paiement:", error);
+                    showMessage("Erreur lors de la validation du paiement. Veuillez réessayer.", "red");
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                    hideConfirmationModal();
+                }
+            }
+
+            async function deleteUser(userId) {
+                loadingOverlay.classList.remove('hidden');
+                try {
+                    await usersCollection.doc(userId).delete();
+                    showMessage("Utilisateur supprimé avec succès !", "green");
+                    // No need to call fetchDashboardData() here, onSnapshot will handle it
+                } catch (error) {
+                    console.error("Erreur lors de la suppression de l'utilisateur:", error);
+                    showMessage("Erreur lors de la suppression de l'utilisateur. Veuillez réessayer.", "red");
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                    hideConfirmationModal();
+                }
+            }
+
+            // --- Edit User Modal Logic ---
+            async function openEditUserModal(userId) {
+                loadingOverlay.classList.remove('hidden');
+                try {
+                    const userDoc = await usersCollection.doc(userId).get();
+                    if (!userDoc.exists) {
+                        showMessage("Utilisateur non trouvé.", "red");
+                        return;
+                    }
+                    const userData = userDoc.data();
+                    currentEditingUserId = userId; // Store the ID of the user being edited
+
+                    editFullnameInput.value = userData.fullname || '';
+                    editPhoneNumberInput.value = userData.phoneNumber || ''; // Disabled, but pre-filled
+                    editMySponsorCodeInput.value = userData.mySponsorCode || ''; // Disabled, but pre-filled
+                    editParentSponsorCodeInput.value = userData.parentSponsorCode || '';
+                    editPaymentStatusSelect.value = userData.paymentStatus || 'unpaid';
+                    editValidationStatusSelect.value = userData.validationStatus || 'pending';
+
+                    editUserModal.classList.remove('hidden');
+                } catch (error) {
+                    console.error("Erreur lors de l'ouverture de la modale d'édition:", error);
+                    showMessage("Erreur lors du chargement des données de l'utilisateur pour modification.", "red");
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                }
+            }
+
+            closeEditUserModalBtn.addEventListener('click', () => {
+                editUserModal.classList.add('hidden');
+                currentEditingUserId = null;
+            });
+
+            editUserForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentEditingUserId) return;
+
+                loadingOverlay.classList.remove('hidden');
+                saveUserChangesBtn.disabled = true;
+                saveUserChangesBtn.textContent = "Enregistrement...";
+
+                try {
+                    await usersCollection.doc(currentEditingUserId).update({
+                        fullname: editFullnameInput.value.trim(),
+                        parentSponsorCode: editParentSponsorCodeInput.value.trim(),
+                        paymentStatus: editPaymentStatusSelect.value,
+                        validationStatus: editValidationStatusSelect.value
+                    });
+                    showMessage("Utilisateur mis à jour avec succès !", "green");
+                    editUserModal.classList.add('hidden');
+                    currentEditingUserId = null;
+                    // No need to call fetchDashboardData() here, onSnapshot will handle it
+                } catch (error) {
+                    console.error("Erreur lors de la mise à jour de l'utilisateur:", error);
+                    showMessage("Erreur lors de la mise à jour de l'utilisateur. Veuillez réessayer.", "red");
+                } finally {
+                    loadingOverlay.classList.add('hidden');
+                    saveUserChangesBtn.disabled = false;
+                    saveUserChangesBtn.textContent = "Enregistrer les modifications";
+                }
+            });
+
+            // --- Custom Confirmation Modal Functions ---
+            let confirmCallback = null;
+
+            function showConfirmationModal(title, message, callback) {
+                confirmModalTitle.textContent = title;
+                confirmModalMessage.textContent = message;
+                confirmCallback = callback;
+                confirmationModal.classList.remove('hidden');
+            }
+
+            function hideConfirmationModal() {
+                confirmationModal.classList.add('hidden');
+                confirmCallback = null;
+            }
+
+            confirmModalCancelBtn.addEventListener('click', hideConfirmationModal);
+            confirmModalConfirmBtn.addEventListener('click', () => {
+                if (confirmCallback) {
+                    confirmCallback();
+                }
+            });
+
+            // --- Floating Message Function ---
+            function showMessage(message, type) {
+                const existingMsg = document.querySelector('.floating-message');
+                if (existingMsg) existingMsg.remove();
+
+                const messageDiv = document.createElement("div");
+                messageDiv.className = `floating-message px-6 py-3 rounded-lg shadow-lg ${type === "green" ? "bg-green-600" : (type === "orange" ? "bg-orange-500" : "bg-red-600")} text-white`;
+                messageDiv.textContent = message;
+
+                document.body.appendChild(messageDiv);
+
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 3000);
+            }
+
+            // --- Search and Refresh Logic ---
+            searchUserInput.addEventListener('input', () => {
+                // Re-render the all users table based on search input
+                fetchDashboardData(); // Re-fetches and filters
+            });
+
+            refreshUsersBtn.addEventListener('click', fetchDashboardData);
+
+
+            // Initial data load
+            fetchDashboardData();
+
+            // Real-time listener for user data changes
+            usersCollection.onSnapshot((snapshot) => {
+                // This listener will trigger fetchDashboardData whenever any user document changes
+                fetchDashboardData();
+            }, (error) => {
+                console.error("Erreur d'écoute Firestore sur la collection users:", error);
+                showMessage("Erreur de connexion en temps réel aux données utilisateurs.", "red");
+            });
+        });
+    </script>
+</body>
+</html>

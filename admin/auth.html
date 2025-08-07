@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentification Admin CashFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <style>
+        /* Styles personnalisés pour un meilleur rendu */
+        body {
+            font-family: 'Inter', sans-serif; /* Utilisation de la police Inter */
+        }
+        .bg-gradient-custom {
+            background: linear-gradient(135deg, #0f172a, #1e293b, #0c4a6e); /* Dégradé de bleu foncé */
+        }
+        .auth-card {
+            background-color: rgba(15, 23, 42, 0.9); /* Fond de carte légèrement transparent */
+            border: 1px solid #1e40af; /* Bordure bleue foncée */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3); /* Ombre plus prononcée */
+        }
+        .input-field {
+            background-color: #1e293b; /* Fond des champs de saisie */
+            color: #e0f2f7; /* Couleur du texte des champs */
+            border: 1px solid #3b82f6; /* Bordure des champs */
+        }
+        .input-field:focus {
+            outline: none;
+            ring-color: #60a5fa; /* Couleur de l'anneau de focus */
+        }
+        .auth-button {
+            background: linear-gradient(90deg, #3b82f6, #2563eb); /* Dégradé pour le bouton */
+            transition: all 0.3s ease-in-out;
+        }
+        .auth-button:hover {
+            background: linear-gradient(90deg, #2563eb, #3b82f6); /* Inversion du dégradé au survol */
+            transform: translateY(-2px); /* Léger déplacement vers le haut */
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.5); /* Ombre au survol */
+        }
+        .message {
+            background-color: rgba(239, 68, 68, 0.15); /* Fond pour les messages d'erreur */
+            border: 1px solid #ef4444; /* Bordure rouge */
+            color: #fca5a5; /* Texte rouge clair */
+        }
+        .message.success {
+            background-color: rgba(34, 197, 94, 0.15); /* Fond pour les messages de succès */
+            border: 1px solid #22c55e; /* Bordure verte */
+            color: #86efac; /* Texte vert clair */
+        }
+        .floating-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            10% { opacity: 1; transform: translate(-50%, 0); }
+            90% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-gradient-custom">
+    <div class="auth-card p-10 rounded-2xl w-full max-w-md">
+        <h2 id="form-title" class="text-3xl font-extrabold mb-8 text-center text-blue-100 tracking-wide drop-shadow-lg">Connexion Admin CashFlow</h2>
+
+        <!-- Formulaire de Connexion Admin -->
+        <form id="adminLoginForm" class="space-y-6">
+            <div>
+                <label for="loginUsername" class="block text-blue-200 mb-2 font-semibold">Nom d'utilisateur</label>
+                <input type="text" id="loginUsername" name="username" required
+                       class="w-full px-4 py-3 rounded-lg focus:ring-2 placeholder-blue-400 shadow-inner transition input-field">
+            </div>
+            <div>
+                <label for="loginPassword" class="block text-blue-200 mb-2 font-semibold">Mot de passe</label>
+                <input type="password" id="loginPassword" name="password" required
+                       class="w-full px-4 py-3 rounded-lg focus:ring-2 placeholder-blue-400 shadow-inner transition input-field">
+            </div>
+            <button type="submit" id="loginBtn"
+                    class="w-full text-white py-3 rounded-lg font-bold auth-button">
+                Se connecter
+            </button>
+        </form>
+
+        <!-- Formulaire d'Inscription Admin (initialement caché) -->
+        <form id="adminRegistrationForm" class="space-y-6 hidden">
+            <div>
+                <label for="regUsername" class="block text-blue-200 mb-2 font-semibold">Nom d'utilisateur</label>
+                <input type="text" id="regUsername" name="username" required
+                       class="w-full px-4 py-3 rounded-lg focus:ring-2 placeholder-blue-400 shadow-inner transition input-field">
+            </div>
+            <div>
+                <label for="regPassword" class="block text-blue-200 mb-2 font-semibold">Mot de passe</label>
+                <input type="password" id="regPassword" name="password" required
+                       class="w-full px-4 py-3 rounded-lg focus:ring-2 placeholder-blue-400 shadow-inner transition input-field">
+            </div>
+            <div>
+                <label for="confirmRegPassword" class="block text-blue-200 mb-2 font-semibold">Confirmer le mot de passe</label>
+                <input type="password" id="confirmRegPassword" name="confirmPassword" required
+                       class="w-full px-4 py-3 rounded-lg focus:ring-2 placeholder-blue-400 shadow-inner transition input-field">
+            </div>
+            <button type="submit" id="registerBtn"
+                    class="w-full text-white py-3 rounded-lg font-bold auth-button">
+                S'inscrire
+            </button>
+        </form>
+
+        <div class="mt-8 text-center text-gray-400">
+            <p id="switch-text">
+                Nouveau membre?
+                <button id="switch-btn" class="text-blue-300 hover:underline">Créer un compte</button>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration Firebase (remplacez par vos propres clés)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAmujy93verunMDtdCFtZYtIMWAkx7DWsw",
+            authDomain: "cashflow-ca20b.firebaseapp.com",
+            projectId: "cashflow-ca20b",
+            storageBucket: "cashflow-ca20b.firebasestorage.app",
+            messagingSenderId: "1075000611455",
+            appId: "1:1075000611455:web:a142c7509e606046a4a54a"
+        };
+
+        // Initialiser Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const adminsCollection = db.collection('admins'); // Collection pour les administrateurs
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const adminLoginForm = document.getElementById('adminLoginForm');
+            const adminRegistrationForm = document.getElementById('adminRegistrationForm');
+            const formTitle = document.getElementById('form-title');
+            const switchText = document.getElementById('switch-text');
+            const switchBtn = document.getElementById('switch-btn');
+
+            // Login elements
+            const loginUsernameInput = document.getElementById('loginUsername');
+            const loginPasswordInput = document.getElementById('loginPassword');
+            const loginBtn = document.getElementById('loginBtn');
+
+            // Registration elements
+            const regUsernameInput = document.getElementById('regUsername');
+            const regPasswordInput = document.getElementById('regPassword');
+            const confirmRegPasswordInput = document.getElementById('confirmRegPassword');
+            const registerBtn = document.getElementById('registerBtn');
+
+            let isLoginMode = true; // True for login, false for registration
+
+            // Function to toggle between login and registration forms
+            function toggleFormMode() {
+                if (isLoginMode) {
+                    // Switch to Registration
+                    adminLoginForm.classList.add('hidden');
+                    adminRegistrationForm.classList.remove('hidden');
+                    formTitle.textContent = "Inscription Admin CashFlow";
+                    switchText.innerHTML = `Déjà un compte admin? <button id="switch-btn" class="text-blue-300 hover:underline">Se connecter</button>`;
+                } else {
+                    // Switch to Login
+                    adminRegistrationForm.classList.add('hidden');
+                    adminLoginForm.classList.remove('hidden');
+                    formTitle.textContent = "Connexion Admin CashFlow";
+                    switchText.innerHTML = `Nouveau membre? <button id="switch-btn" class="text-blue-300 hover:underline">Créer un compte</button>`;
+                }
+                isLoginMode = !isLoginMode;
+                // Re-attach event listener to the new switch button
+                document.getElementById('switch-btn').addEventListener('click', toggleFormMode);
+            }
+
+            // Initial event listener for the switch button
+            switchBtn.addEventListener('click', toggleFormMode);
+
+            // --- Admin Login Logic ---
+            adminLoginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const username = loginUsernameInput.value.trim();
+                const password = loginPasswordInput.value;
+
+                loginBtn.disabled = true;
+                loginBtn.textContent = "Connexion en cours...";
+
+                try {
+                    // Rechercher l'administrateur par nom d'utilisateur
+                    const adminQuery = await adminsCollection.where('username', '==', username).limit(1).get();
+
+                    if (adminQuery.empty) {
+                        showMessage("Nom d'utilisateur ou mot de passe incorrect.", "red");
+                        return;
+                    }
+
+                    const adminData = adminQuery.docs[0].data();
+
+                    // Vérifier le mot de passe (ATTENTION: à remplacer par un système de hachage plus sécurisé en production)
+                    if (adminData.password !== password) {
+                        showMessage("Nom d'utilisateur ou mot de passe incorrect.", "red");
+                        return;
+                    }
+
+                    // *** AJOUT IMPORTANT : Enregistrer l'état de connexion dans sessionStorage ***
+                    sessionStorage.setItem('adminLoggedIn', 'true');
+                    sessionStorage.setItem('adminUsername', username);
+
+                    showMessage("Connexion administrateur réussie ! Redirection...", "green");
+                    // Rediriger l'administrateur vers sa page de tableau de bord
+                    setTimeout(() => window.location.href = './index.html', 2000); // Chemin corrigé
+                    adminLoginForm.reset(); // Réinitialiser le formulaire après succès
+
+                } catch (error) {
+                    console.error("Erreur lors de la connexion de l'administrateur:", error);
+                    showMessage("Une erreur est survenue lors de la connexion. Veuillez réessayer.", "red");
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = "Se connecter";
+                }
+            });
+
+            // --- Admin Registration Logic ---
+            adminRegistrationForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const username = regUsernameInput.value.trim();
+                const password = regPasswordInput.value;
+                const confirmPassword = confirmRegPasswordInput.value;
+
+                // Validation des champs
+                if (password !== confirmPassword) {
+                    showMessage("Les mots de passe ne correspondent pas.", "red");
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showMessage("Le mot de passe doit contenir au moins 6 caractères.", "red");
+                    return;
+                }
+
+                registerBtn.disabled = true;
+                registerBtn.textContent = "Inscription en cours...";
+
+                try {
+                    // Vérifier si le nom d'utilisateur existe déjà
+                    const existingUser = await adminsCollection.where('username', '==', username).limit(1).get();
+                    if (!existingUser.empty) {
+                        showMessage('Ce nom d\'utilisateur est déjà pris.', 'red');
+                        return;
+                    }
+
+                    // Ajouter le nouvel administrateur à Firestore
+                    // ATTENTION: Pour une application en production, les mots de passe DOIVENT être hachés
+                    // avant d'être stockés dans la base de données (ex: bcrypt).
+                    // Le stockage en clair est une VULNÉRABILITÉ MAJEURE.
+                    await adminsCollection.add({
+                        username: username,
+                        password: password, // À HACHER EN PRODUCTION !
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    showMessage("Compte administrateur créé avec succès ! Vous pouvez maintenant vous connecter.", "green");
+                    adminRegistrationForm.reset(); // Réinitialiser le formulaire
+                    // Basculer automatiquement vers le mode de connexion après l'inscription réussie
+                    toggleFormMode();
+
+                } catch (error) {
+                    console.error("Erreur lors de l'inscription de l'administrateur:", error);
+                    showMessage("Une erreur est survenue lors de l'inscription. Veuillez réessayer.", "red");
+                } finally {
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = "S'inscrire";
+                }
+            });
+        });
+
+        // Fonction pour afficher des messages flottants (réutilisée)
+        function showMessage(message, type) {
+            const existingMsg = document.querySelector('.floating-message');
+            if (existingMsg) existingMsg.remove();
+
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `floating-message px-6 py-3 rounded-lg shadow-lg ${type === "green" ? "bg-green-600" : (type === "orange" ? "bg-orange-500" : "bg-red-600")} text-white`;
+            messageDiv.textContent = message;
+
+            document.body.appendChild(messageDiv);
+
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

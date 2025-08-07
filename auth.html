@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentification Cashflow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  
+  <style>
+    :root {
+      --primary-blue: #0967E5;
+      --dark-blue: #040d1d;
+      --darker-bg: #0A0F1A;
+    }
+    
+    body {
+      background: radial-gradient(circle at 10% 20%, var(--dark-blue) 0%, var(--darker-bg) 90%);
+      min-height: 100vh;
+    }
+    
+    .auth-container {
+      backdrop-filter: blur(10px);
+      background: rgba(10, 15, 26, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(9, 103, 229, 0.15);
+    }
+    
+    .input-field {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .input-field:focus {
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(9, 103, 229, 0.3);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-blue), #0A7EFF);
+      transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(9, 103, 229, 0.4);
+    }
+    
+    .logo-text {
+      background: linear-gradient(90deg, #FFFFFF, var(--primary-blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    
+    .floating-message {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      animation: fadeInOut 3s forwards;
+    }
+    
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -20px); }
+      10% { opacity: 1; transform: translate(-50%, 0); }
+      90% { opacity: 1; transform: translate(-50%, 0); }
+      100% { opacity: 0; transform: translate(-50%, -20px); }
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+    
+    @media (max-width: 640px) {
+      .auth-container {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body class="text-white font-sans">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header compact -->
+    <header class="py-4 px-4 sm:px-6">
+      <div class="flex justify-between items-center">
+        <h1 class="text-2xl sm:text-3xl font-bold logo-text">CashFlow</h1>
+        <div class="hidden sm:flex space-x-4">
+          <a href="index.html" class="text-sm hover:text-blue-400 transition">Accueil</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenu principal centré -->
+    <main class="flex-grow flex items-center justify-center px-4 py-8">
+      <div class="auth-card">
+        <div class="auth-container rounded-xl p-6 sm:p-8">
+          <!-- En-tête du formulaire -->
+          <div class="text-center mb-6">
+            <h2 class="text-xl sm:text-2xl font-bold mb-1" id="form-title">Créer un compte</h2>
+            <p class="text-sm text-gray-400" id="form-subtitle">Commencez votre gestion financière en 30 secondes</p>
+          </div>
+
+          <!-- Formulaire d'inscription -->
+          <form id="signup-form" class="space-y-4">
+            <div>
+              <div class="relative">
+                <input id="fullname-signup" type="text" placeholder="Nom complet" required
+                  class="input-field w-full rounded-lg px-4 py-2.5 pl-10 text-sm sm:text-base placeholder-gray-400 focus:outline-none">
+                <i class="fas fa-user absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+              </div>
+            </div>
+            
+            <div>
+              <div class="relative">
+                <input id="phone-signup" type="tel" placeholder="Numéro de téléphone" required
+                  class="input-field w-full rounded-lg px-4 py-2.5 pl-10 text-sm sm:text-base placeholder-gray-400 focus:outline-none">
+                <i class="fas fa-phone absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+              </div>
+            </div>
+            
+            <div>
+              <div class="relative">
+                <input id="sponsor-code-signup" type="text" placeholder="Code de parrainage (optionnel)"
+                  class="input-field w-full rounded-lg px-4 py-2.5 pl-10 text-sm sm:text-base placeholder-gray-400 focus:outline-none">
+                <i class="fas fa-gift absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+              </div>
+            </div>
+            
+            <div>
+              <div class="relative">
+                <input id="password-signup" type="password" placeholder="Mot de passe (6+ caractères)" required
+                  class="input-field w-full rounded-lg px-4 py-2.5 pl-10 text-sm sm:text-base placeholder-gray-400 focus:outline-none">
+                <i class="fas fa-lock absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+              </div>
+            </div>
+            
+            <button type="submit" id="submit-btn-signup"
+              class="btn-primary w-full py-2.5 rounded-lg font-medium text-sm sm:text-base">
+              S'inscrire
+            </button>
+          </form>
+
+          <!-- Formulaire de connexion -->
+          <form id="login-form" class="space-y-4 hidden">
+            <div>
+              <div class="relative">
+                <input id="phone-login" type="tel" placeholder="Numéro de téléphone" required
+                  class="input-field w-full rounded-lg px-4 py-2.5 pl-10 text-sm sm:text-base placeholder-gray-400 focus:outline-none">
+                <i class="fas fa-phone absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+              </div>
+            </div>
+            
+            <div>
+              <div class="relative">
+                <input id="password-login" type="password" placeholder="Mot de passe" required
+                  class="input-field w-full rounded-lg px-4 py-2.5 pl-10 text-sm sm:text-base placeholder-gray-400 focus:outline-none">
+                <i class="fas fa-lock absolute left-3 top-2.5 text-gray-400 text-sm"></i>
+              </div>
+              <div class="text-right mt-1">
+                <a href="#" class="text-xs text-blue-400 hover:underline">Mot de passe oublié ?</a>
+              </div>
+            </div>
+            
+            <button type="submit" id="login-submit-btn"
+              class="btn-primary w-full py-2.5 rounded-lg font-medium text-sm sm:text-base">
+              Se connecter
+            </button>
+            
+          </form>
+
+          <!-- Basculer entre connexion/inscription -->
+          <div class="mt-6 text-center">
+            <p id="switch-text" class="text-xs sm:text-sm text-gray-400">
+              Déjà membre?
+              <button id="switch-btn" class="text-blue-400 font-medium hover:underline ml-1">Se connecter</button>
+            </p>
+          </div>
+        </div>
+
+        <!-- Footer compact -->
+        <div class="mt-6 text-center text-xs text-gray-500">
+          <p>En continuant, vous acceptez nos <a href="cgu.html" class="text-blue-400 hover:underline">Conditions d'utilisation</a></p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAmujy93verunMDtdCFtZYtIMWAkx7DWsw",
+      authDomain: "cashflow-ca20b.firebaseapp.com",
+      projectId: "cashflow-ca20b",
+      storageBucket: "cashflow-ca20b.firebasestorage.app",
+      messagingSenderId: "1075000611455",
+      appId: "1:1075000611455:web:a142c7509e606046a4a54a"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const usersCollection = db.collection('users');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const signupForm = document.getElementById('signup-form');
+      const loginForm = document.getElementById('login-form');
+      const switchText = document.getElementById('switch-text');
+      const signupBtn = document.getElementById('submit-btn-signup');
+      const loginBtn = document.getElementById('login-submit-btn');
+
+      let isLogin = false;
+
+      // Basculer entre inscription et connexion
+      switchText.addEventListener('click', (e) => {
+        if (e.target.id === 'switch-btn') {
+          isLogin = !isLogin;
+          if (isLogin) {
+            signupForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            switchText.innerHTML = `Nouveau membre? <button id="switch-btn" class="text-white hover:underline">Créer un compte</button>`;
+          } else {
+            loginForm.classList.add('hidden');
+            signupForm.classList.remove('hidden');
+            switchText.innerHTML = `Déjà membre? <button id="switch-btn" class="text-white hover:underline">Se connecter</button>`;
+          }
+        }
+      });
+
+      // Générer un code de parrainage aléatoire
+      function generateSponsorCode() {
+        return Math.random().toString(36).substring(2, 8).toUpperCase();
+      }
+
+      // Gérer l'inscription
+      signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const fullname = document.getElementById('fullname-signup').value.trim();
+        const phoneNumber = document.getElementById('phone-signup').value.trim();
+        const sponsorCodeEntered = document.getElementById('sponsor-code-signup').value.trim();
+        const password = document.getElementById('password-signup').value;
+        
+
+        if (password.length < 6) {
+          showMessage("Le mot de passe doit contenir au moins 6 caractères.", "red");
+          return;
+        }
+
+        try {
+          signupBtn.disabled = true;
+          signupBtn.textContent = "Inscription en cours...";
+
+          // 1. Vérifier si un compte avec ce numéro existe déjà
+          const phoneQuery = await usersCollection.where('phoneNumber', '==', phoneNumber).limit(1).get();
+          if (!phoneQuery.empty) {
+            showMessage('Un compte existe déjà avec ce numéro de téléphone.', 'red');
+            return;
+          }
+
+          let parentSponsorCode = "cashflow"; // Code de parrainage par défaut
+          // 2. Vérifier si le code de parrainage entré est valide
+          if (sponsorCodeEntered && sponsorCodeEntered.toLowerCase() !== 'cashflow') {
+            const sponsorQuery = await usersCollection.where('mySponsorCode', '==', sponsorCodeEntered).limit(1).get();
+            if (sponsorQuery.empty) {
+              showMessage('Le code de parrainage n\'est pas valide. Inscription en tant que "cashflow".', 'orange');
+            } else {
+              parentSponsorCode = sponsorCodeEntered;
+            }
+          }
+
+          // 3. Générer un code de parrainage unique pour le nouvel utilisateur
+          let mySponsorCode = generateSponsorCode();
+          while (await usersCollection.where('mySponsorCode', '==', mySponsorCode).limit(1).get().then(snap => !snap.empty)) {
+            mySponsorCode = generateSponsorCode();
+          }
+
+          // 4. Créer le nouvel utilisateur dans Firestore
+          await usersCollection.add({
+            fullname: fullname,
+            phoneNumber: phoneNumber,
+            password: password, // ATTENTION : C'est une mauvaise pratique, à des fins de démonstration uniquement
+            parentSponsorCode: parentSponsorCode,
+            mySponsorCode: mySponsorCode,
+            paymentStatus: 'unpaid', // Nouveau champ: statut de paiement initial
+            validationStatus: 'pending', // Nouveau champ: statut de validation initial
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+
+          showMessage("Inscription réussie ! Vous pouvez maintenant vous connecter.", "green");
+          signupForm.reset();
+          // Basculer vers le formulaire de connexion
+          isLogin = true;
+          signupForm.classList.add('hidden');
+          loginForm.classList.remove('hidden');
+          switchText.innerHTML = `Nouveau membre? <button id="switch-btn" class="text-white hover:underline">Créer un compte</button>`;
+        
+        } catch (error) {
+          console.error("Erreur lors de l'inscription:", error);
+          showMessage("Erreur lors de l'inscription. Veuillez réessayer.", "red");
+        } finally {
+          signupBtn.disabled = false;
+          signupBtn.textContent = "S'inscrire";
+        }
+      });
+
+      // Gérer la connexion
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const phoneNumber = document.getElementById('phone-login').value.trim();
+        const password = document.getElementById('password-login').value;
+
+        if (!phoneNumber) {
+          showMessage("Veuillez entrer un numéro de téléphone.", "red");
+          return;
+        }
+        if (!password) {
+          showMessage("Veuillez entrer un mot de passe.", "red");
+          return;
+        }
+
+        try {
+          loginBtn.disabled = true;
+          loginBtn.textContent = "Connexion en cours...";
+
+          // 1. Rechercher l'utilisateur par numéro de téléphone
+          const userQuery = await usersCollection.where('phoneNumber', '==', phoneNumber).limit(1).get();
+          if (userQuery.empty) {
+            showMessage("Numéro de téléphone ou mot de passe incorrect.", "red");
+            return;
+          }
+
+          // 2. Vérifier le mot de passe (ATTENTION: à remplacer par un système de hachage plus sécurisé en production)
+          const userDoc = userQuery.docs[0];
+          const userData = userDoc.data();
+          if (userData.password !== password) {
+            showMessage("Numéro de téléphone ou mot de passe incorrect.", "red");
+            return;
+          }
+
+          // *** AJOUT IMPORTANT : Enregistrer l'état de connexion et l'ID utilisateur dans sessionStorage ***
+          sessionStorage.setItem('userLoggedIn', 'true');
+          sessionStorage.setItem('userId', userDoc.id); // Stocker l'ID du document Firestore
+          sessionStorage.setItem('userPhoneNumber', phoneNumber); // Stocker le numéro de téléphone
+
+          showMessage("Connexion réussie ! Redirection...", "green");
+          setTimeout(() => window.location.href = './dash/', 2000); // Rediriger vers le tableau de bord utilisateur
+
+        } catch (error) {
+          console.error("Erreur de connexion:", error);
+          showMessage("Échec de la connexion. Vérifiez votre numéro ou votre mot de passe.", "red");
+        } finally {
+          loginBtn.disabled = false;
+          loginBtn.textContent = "Se connecter";
+        }
+      });
+    });
+
+    function showMessage(message, type) {
+      const existingMsg = document.querySelector('.floating-message');
+      if (existingMsg) existingMsg.remove();
+
+      const messageDiv = document.createElement("div");
+      messageDiv.className = `floating-message px-6 py-3 rounded-lg shadow-lg ${type === "green" ? "bg-green-600" : (type === "orange" ? "bg-orange-500" : "bg-red-600")} text-white`;
+      messageDiv.textContent = message;
+
+      document.body.appendChild(messageDiv);
+
+      setTimeout(() => {
+        messageDiv.remove();
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
