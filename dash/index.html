@@ -26,17 +26,49 @@
             background: linear-gradient(135deg, #2d3748, #1a202c, #2d3748);
             border: 1px solid #4a5568;
         }
-        .video-placeholder {
-            background-color: #1a202c;
-            border-radius: 0.75rem;
-            height: 150px; /* Fixed height for placeholders */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
+        /* Styles pour les tableaux */
+        .table-header {
+            background-color: #2d3748;
             color: #a0aec0;
+        }
+        .table-row:nth-child(even) {
+            background-color: #1a202c;
+        }
+        .table-row:nth-child(odd) {
+            background-color: #2d3748;
+        }
+        .video-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 2rem;
+            text-align: center;
+            min-height: 150px;
+        }
+        .video-access-btn {
+            background-color: #3b82f6;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
+        .video-access-btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        }
+        .video-overlay {
+            color: #a0aec0;
+            font-size: 1.25rem;
+        }
+
         /* Overlay de paiement */
         .payment-overlay, .edit-profile-modal {
             position: fixed;
@@ -196,23 +228,42 @@
             <div class="card-gradient rounded-xl p-6 shadow-lg">
                 <h2 class="text-xl font-semibold mb-3 text-white">Mes Gains</h2>
                 <div class="space-y-3">
-                    <p class="flex items-center gap-2"><i class="fas fa-users text-emerald-400"></i> <strong class="text-emerald-400">Nombre de filleuls:</strong> <span id="userDirectReferrals">0</span></p>
-                    <p class="flex items-center gap-2"><i class="fas fa-money-bill-wave text-emerald-400"></i> <strong class="text-emerald-400">Gains potentiels:</strong> <span id="userPotentialEarnings">0 FCFA</span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-users text-emerald-400"></i> <strong class="text-emerald-400">Nombre de filleuls validés:</strong> <span id="userValidatedReferrals">0</span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-money-bill-wave text-emerald-400"></i> <strong class="text-emerald-400">Gains totaux:</strong> <span id="userTotalEarnings">0 FCFA</span></p>
                 </div>
-                <p class="text-gray-400 mt-4 text-sm">Cette section affichera vos gains et vos statistiques de parrainage. (Nécessite une logique backend pour les calculs exacts).</p>
+                <p class="text-gray-400 mt-4 text-sm">Cette section affichera vos gains en fonction des filleuls validés.</p>
             </div>
         </div>
 
+        <!-- Section Filleuls -->
+        <div class="card-gradient rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-white">Mes filleuls</h2>
+            <div class="overflow-x-auto rounded-lg shadow-md">
+                <table class="min-w-full text-left">
+                    <thead>
+                        <tr class="table-header">
+                            <th class="py-3 px-4">Nom & Prénom</th>
+                            <th class="py-3 px-4">Téléphone</th>
+                            <th class="py-3 px-4">Statut Paiement</th>
+                        </tr>
+                    </thead>
+                    <tbody id="referralsTable" class="divide-y divide-gray-700">
+                        <!-- Referral user rows will be inserted here -->
+                    </tbody>
+                </table>
+                <p id="noReferralsMessage" class="text-gray-400 text-center py-4 hidden">Vous n'avez pas encore de filleuls.</p>
+            </div>
+        </div>
+
+        <!-- Section Contenus Vidéo -->
         <div class="card-gradient rounded-xl shadow-lg p-6">
             <h2 class="text-xl font-semibold mb-4 text-white">Contenus Vidéo</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="videoContent">
-                <!-- Video placeholders -->
-                <div class="video-placeholder">Film / Série 1</div>
-                <div class="video-placeholder">Film / Série 2</div>
-                <div class="video-placeholder">Film / Série 3</div>
-                <div class="video-placeholder">Film / Série 4</div>
-                <div class="video-placeholder">Film / Série 5</div>
-                <div class="video-placeholder">Film / Série 6</div>
+            <div class="video-content" id="videoContent">
+                <div id="videoAccessContent">
+                    <p id="videoOverlayMessage" class="video-overlay mb-4">
+                        Pour débloquer l'accès à la vidéo de formation, veuillez d'abord activer votre compte en effectuant le paiement.
+                    </p>
+                </div>
             </div>
         </div>
     </main>
@@ -223,7 +274,7 @@
         <div class="payment-overlay-content">
             <h2 id="overlayTitle" class="text-2xl font-bold mb-4 text-white">Activez votre accès aux contenus</h2>
             <p id="overlayMessage" class="text-gray-300 mb-6">
-                Pour débloquer l'accès à tous nos films et séries, veuillez effectuer un paiement de <strong class="text-emerald-400">500 FCFA</strong> via MoMo SSUD au numéro : <strong class="text-blue-300">01 23 45 67 89</strong>.
+                Pour débloquer l'accès à la vidéo de formation, veuillez effectuer un paiement de <strong class="text-emerald-400">500 FCFA</strong> via MoMo SSUD au numéro : <strong class="text-blue-300">01 23 45 67 89</strong>.
                 <br><br>
                 Dès que le paiement est effectué, veuillez saisir l'ID de transaction ci-dessous et cliquer sur "Fait" pour nous en informer.
             </p>
@@ -275,6 +326,7 @@
             const submitTransactionBtn = document.getElementById('submitTransactionBtn');
             const transactionInputSection = document.getElementById('transactionInputSection');
             const videoContent = document.getElementById('videoContent');
+            const videoAccessContent = document.getElementById('videoAccessContent');
             const loadingOverlay = document.getElementById('loadingOverlay');
 
             // User Info Display elements
@@ -285,8 +337,11 @@
             const userInfoPaymentStatus = document.getElementById('userInfoPaymentStatus');
             const userInfoValidationStatus = document.getElementById('userInfoValidationStatus');
             const copySponsorCodeBtn = document.getElementById('copySponsorCodeBtn'); 
-            const userDirectReferrals = document.getElementById('userDirectReferrals');
-            const userPotentialEarnings = document.getElementById('userPotentialEarnings');
+            const userValidatedReferrals = document.getElementById('userValidatedReferrals');
+            const userTotalEarnings = document.getElementById('userTotalEarnings');
+            const referralsTableBody = document.getElementById('referralsTable');
+            const noReferralsMessage = document.getElementById('noReferralsMessage');
+
 
             // Edit Profile Modal elements
             const editProfileBtn = document.getElementById('editProfileBtn');
@@ -294,6 +349,7 @@
             const closeEditProfileModalBtn = document.getElementById('closeEditProfileModalBtn');
             const editFullnameInput = document.getElementById('editFullnameInput');
             const saveProfileBtn = document.getElementById('saveProfileBtn');
+            const VIDEO_URL = "https://drive.google.com/file/d/1N4aceYAg7wMW18yjKH8LZRxarWFCpw8A/view?usp=drive_link";
 
             // --- Vérification de l'authentification de l'utilisateur ---
             if (!userLoggedIn || userLoggedIn !== 'true' || !userId) {
@@ -322,21 +378,34 @@
                     }
 
                     const userData = userDoc.data();
+                    const mySponsorCode = userData.mySponsorCode;
                     userFullnameDisplay.textContent = userData.fullname || 'Utilisateur';
 
-                    // Afficher les informations de l'utilisateur
+                    // Fetch ALL referrals to display in the table
+                    const allReferralsSnapshot = await usersCollection.where('parentSponsorCode', '==', mySponsorCode).get();
+                    const allReferrals = allReferralsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                    // Filter referrals to get only validated ones for earnings calculation
+                    const validatedReferrals = allReferrals.filter(referral => referral.paymentStatus === 'paid_momo_ssud_validated');
+                    const validatedReferralsCount = validatedReferrals.length;
+                    
+                    // Update main user info
                     userInfoFullname.textContent = userData.fullname || 'N/A';
                     userInfoPhone.textContent = userData.phoneNumber || 'N/A';
-                    userInfoMySponsorCode.textContent = userData.mySponsorCode || 'N/A';
+                    userInfoMySponsorCode.textContent = mySponsorCode || 'N/A';
                     userInfoParentSponsorCode.textContent = userData.parentSponsorCode || 'N/A';
                     userInfoPaymentStatus.textContent = getPaymentStatusText(userData.paymentStatus);
                     userInfoValidationStatus.textContent = getValidationStatusText(userData.validationStatus);
-                    userDirectReferrals.textContent = userData.directReferralsCount || 0; // Display direct referrals
-                    // Placeholder for potential earnings - requires backend logic
-                    userPotentialEarnings.textContent = `${(userData.directReferralsCount || 0) * 100} FCFA`; // Example calculation
+                    
+                    // Update earnings and referral count based on validated referrals
+                    userValidatedReferrals.textContent = validatedReferralsCount;
+                    userTotalEarnings.textContent = `${(validatedReferralsCount || 0) * 500} FCFA`;
 
-                    // Gérer l'overlay et l'accès au contenu
+                    // Handle content access and overlay
                     handleContentAccess(userData);
+
+                    // Render ALL referrals in the table
+                    renderReferralsTable(allReferrals);
 
                 } catch (error) {
                     console.error("Erreur lors du chargement des données utilisateur:", error);
@@ -367,12 +436,20 @@
                 if (userData.paymentStatus === 'paid_momo_ssud_validated' && userData.validationStatus === 'validated') {
                     // Accès accordé : cacher l'overlay
                     paymentOverlay.classList.add('hidden');
-                    videoContent.style.filter = 'none'; // Supprimer le flou des vidéos
-                    showMessage("Accès aux contenus vidéo activé !", "green");
+                    // Remplacer le contenu du vidéo-placeholder par le bouton
+                    videoAccessContent.innerHTML = `
+                        <a href="${VIDEO_URL}" target="_blank" class="video-access-btn">
+                            <i class="fas fa-play-circle"></i> Accéder à la vidéo
+                        </a>
+                    `;
                 } else if (userData.paymentStatus === 'pending_validation') {
                     // Paiement soumis, en attente de validation
                     paymentOverlay.classList.remove('hidden');
-                    videoContent.style.filter = 'blur(5px)'; // Flouer les vidéos
+                    videoAccessContent.innerHTML = `
+                        <p id="videoOverlayMessage" class="video-overlay">
+                            Votre paiement est en attente de vérification.
+                        </p>
+                    `;
                     overlayTitle.textContent = "Paiement en attente de vérification";
                     overlayMessage.innerHTML = `
                         Votre paiement a été soumis avec l'ID de transaction : <strong class="text-blue-300">${userData.transactionId || 'N/A'}</strong>.
@@ -383,14 +460,37 @@
                 } else {
                     // Pas encore payé ou paiement invalide
                     paymentOverlay.classList.remove('hidden');
-                    videoContent.style.filter = 'blur(5px)'; // Flouer les vidéos
+                    videoAccessContent.innerHTML = `
+                        <p id="videoOverlayMessage" class="video-overlay">
+                            Pour débloquer l'accès à la vidéo de formation, veuillez d'abord activer votre compte en effectuant le paiement.
+                        </p>
+                    `;
                     overlayTitle.textContent = "Activez votre accès aux contenus";
                     overlayMessage.innerHTML = `
-                        Pour débloquer l'accès à tous nos films et séries, veuillez effectuer un paiement de <strong class="text-emerald-400">500 FCFA</strong> via MoMo SSUD au numéro : <strong class="text-blue-300">01 23 45 67 89</strong>.
+                        Pour débloquer l'accès à la vidéo de formation, veuillez effectuer un paiement de <strong class="text-emerald-400">500 FCFA</strong> via MoMo SSUD au numéro : <strong class="text-blue-300">01 23 45 67 89</strong>.
                         <br><br>
                         Dès que le paiement est effectué, veuillez saisir l'ID de transaction ci-dessous et cliquer sur "Fait" pour nous en informer.
                     `;
                     transactionInputSection.classList.remove('hidden'); // Afficher le champ de saisie
+                }
+            }
+
+            function renderReferralsTable(referrals) {
+                referralsTableBody.innerHTML = '';
+                if (referrals.length === 0) {
+                    noReferralsMessage.classList.remove('hidden');
+                } else {
+                    noReferralsMessage.classList.add('hidden');
+                    referrals.forEach(referral => {
+                        const row = document.createElement('tr');
+                        row.className = 'table-row';
+                        row.innerHTML = `
+                            <td class="py-2 px-4">${referral.fullname || 'N/A'}</td>
+                            <td class="py-2 px-4">${referral.phoneNumber || 'N/A'}</td>
+                            <td class="py-2 px-4">${getPaymentStatusText(referral.paymentStatus)}</td>
+                        `;
+                        referralsTableBody.appendChild(row);
+                    });
                 }
             }
 
@@ -414,7 +514,7 @@
                         submittedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     showMessage("ID de transaction envoyé avec succès ! Veuillez patienter pour la validation.", "green");
-                    loadUserData(); // Recharger les données pour mettre à jour l'overlay
+                    // Pas besoin de recharger toutes les données, le listener s'en chargera
                 } catch (error) {
                     console.error("Erreur lors de l'envoi de l'ID de transaction:", error);
                     showMessage("Erreur lors de l'envoi de l'ID de transaction. Veuillez réessayer.", "red");
@@ -429,24 +529,13 @@
             copySponsorCodeBtn.addEventListener('click', () => {
                 const sponsorCode = userInfoMySponsorCode.textContent;
                 if (sponsorCode && sponsorCode !== 'N/A') {
-                    // Use modern Clipboard API if available, fallback to execCommand
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(sponsorCode).then(() => {
-                            showMessage("Code de parrainage copié !", "green");
-                        }).catch(err => {
-                            console.error('Could not copy text: ', err);
-                            showMessage("Échec de la copie. Veuillez copier manuellement.", "red");
-                        });
-                    } else {
-                        // Fallback for older browsers or environments without Clipboard API
-                        const tempInput = document.createElement('input');
-                        document.body.appendChild(tempInput);
-                        tempInput.value = sponsorCode;
-                        tempInput.select();
-                        document.execCommand('copy');
-                        document.body.removeChild(tempInput);
-                        showMessage("Code de parrainage copié ! (via fallback)", "green");
-                    }
+                    const tempInput = document.createElement('input');
+                    document.body.appendChild(tempInput);
+                    tempInput.value = sponsorCode;
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                    showMessage("Code de parrainage copié !", "green");
                 } else {
                     showMessage("Aucun code de parrainage à copier.", "red");
                 }
@@ -479,7 +568,7 @@
                     });
                     showMessage("Nom complet mis à jour avec succès !", "green");
                     editProfileModal.classList.add('hidden');
-                    loadUserData(); // Reload data to update displayed name
+                    // Le listener mettra à jour l'affichage automatiquement
                 } catch (error) {
                     console.error("Erreur lors de la mise à jour du profil:", error);
                     showMessage("Erreur lors de la mise à jour du profil. Veuillez réessayer.", "red");
@@ -490,7 +579,6 @@
                 }
             });
 
-
             // Load data on startup
             loadUserData();
 
@@ -498,6 +586,7 @@
             usersCollection.doc(userId).onSnapshot((doc) => {
                 if (doc.exists) {
                     const userData = doc.data();
+                    
                     // Update user info display
                     userInfoFullname.textContent = userData.fullname || 'N/A';
                     userInfoPhone.textContent = userData.phoneNumber || 'N/A';
@@ -505,10 +594,26 @@
                     userInfoParentSponsorCode.textContent = userData.parentSponsorCode || 'N/A';
                     userInfoPaymentStatus.textContent = getPaymentStatusText(userData.paymentStatus);
                     userInfoValidationStatus.textContent = getValidationStatusText(userData.validationStatus);
-                    userDirectReferrals.textContent = userData.directReferralsCount || 0; // Update direct referrals
-                    userPotentialEarnings.textContent = `${(userData.directReferralsCount || 0) * 100} FCFA`; // Update potential earnings
-                    // Update overlay and content access
+                    
+                    // Handle content access and overlay
                     handleContentAccess(userData);
+
+                    // Re-fetch and render referrals based on the user's updated sponsor code
+                    // This is a direct fetch, not a listener, to avoid complexity
+                    if (userData.mySponsorCode) {
+                        usersCollection.where('parentSponsorCode', '==', userData.mySponsorCode).get().then(referralsSnapshot => {
+                            const allReferrals = referralsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                            const validatedReferralsCount = allReferrals.filter(referral => referral.paymentStatus === 'paid_momo_ssud_validated').length;
+
+                            renderReferralsTable(allReferrals);
+                            userValidatedReferrals.textContent = validatedReferralsCount;
+                            userTotalEarnings.textContent = `${(validatedReferralsCount || 0) * 500} FCFA`;
+                        }).catch(error => {
+                            console.error("Erreur lors du chargement des filleuls:", error);
+                            showMessage("Erreur lors de la mise à jour des filleuls en temps réel.", "red");
+                        });
+                    }
+
                 } else {
                     // If document no longer exists (e.g., deleted by admin)
                     showMessage("Votre compte n'existe plus. Déconnexion...", "red");
