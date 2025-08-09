@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,24 +20,30 @@
             display: flex;
             flex-direction: column;
         }
+
         .nav-gradient {
             background: linear-gradient(90deg, #1a202c, #2d3748, #1a202c);
         }
+
         .card-gradient {
             background: linear-gradient(135deg, #2d3748, #1a202c, #2d3748);
             border: 1px solid #4a5568;
         }
+
         /* Styles pour les tableaux */
         .table-header {
             background-color: #2d3748;
             color: #a0aec0;
         }
+
         .table-row:nth-child(even) {
             background-color: #1a202c;
         }
+
         .table-row:nth-child(odd) {
             background-color: #2d3748;
         }
+
         .video-content {
             display: flex;
             justify-content: center;
@@ -47,6 +54,7 @@
             text-align: center;
             min-height: 150px;
         }
+
         .video-access-btn {
             background-color: #3b82f6;
             color: white;
@@ -59,18 +67,21 @@
             gap: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
+
         .video-access-btn:hover {
             background-color: #2563eb;
             transform: translateY(-2px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
         }
+
         .video-overlay {
             color: #a0aec0;
             font-size: 1.25rem;
         }
 
         /* Overlay de paiement */
-        .payment-overlay, .edit-profile-modal {
+        .payment-overlay,
+        .edit-profile-modal {
             position: fixed;
             top: 0;
             left: 0;
@@ -81,16 +92,22 @@
             align-items: center;
             z-index: 1000;
         }
-        .payment-overlay-backdrop, .modal-backdrop {
+
+        .payment-overlay-backdrop,
+        .modal-backdrop {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Darkened background */
-            backdrop-filter: blur(8px); /* Blur effect */
+            background-color: rgba(0, 0, 0, 0.7);
+            /* Darkened background */
+            backdrop-filter: blur(8px);
+            /* Blur effect */
         }
-        .payment-overlay-content, .modal-content {
+
+        .payment-overlay-content,
+        .modal-content {
             background: linear-gradient(135deg, #2d3748, #1a202c);
             padding: 2.5rem;
             border-radius: 1rem;
@@ -100,9 +117,12 @@
             max-width: 500px;
             width: 90%;
             border: 1px solid #4a5568;
-            position: relative; /* Needed for close button positioning */
+            position: relative;
+            /* Needed for close button positioning */
         }
-        .payment-overlay-content input, .modal-content input {
+
+        .payment-overlay-content input,
+        .modal-content input {
             background-color: #1a202c;
             border: 1px solid #4a5568;
             color: #e2e8f0;
@@ -111,7 +131,9 @@
             width: 100%;
             margin-top: 1rem;
         }
-        .payment-overlay-content button, .modal-content button {
+
+        .payment-overlay-content button,
+        .modal-content button {
             background-color: #3b82f6;
             color: white;
             padding: 0.75rem 1.5rem;
@@ -120,26 +142,48 @@
             margin-top: 1rem;
             transition: background-color 0.2s;
         }
-        .payment-overlay-content button:hover, .modal-content button:hover {
+
+        .payment-overlay-content button:hover,
+        .modal-content button:hover {
             background-color: #2563eb;
         }
+
         .hidden {
             display: none;
         }
+
         .floating-message {
             position: fixed;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 2000; /* Higher than overlay */
+            z-index: 2000;
+            /* Higher than overlay */
             animation: fadeInOut 3s forwards;
         }
+
         @keyframes fadeInOut {
-            0% { opacity: 0; transform: translate(-50%, -20px); }
-            10% { opacity: 1; transform: translate(-50%, 0); }
-            90% { opacity: 1; transform: translate(-50%, 0); }
-            100% { opacity: 0; transform: translate(-50%, -20px); }
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
+
+            10% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+
+            90% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -20px);
+            }
         }
+
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -150,22 +194,28 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 3000; /* Highest */
+            z-index: 3000;
+            /* Highest */
             color: white;
             font-size: 1.5rem;
         }
+
         .copy-button {
             background: none;
             border: none;
-            color: #86efac; /* Light green for copy icon */
+            color: #86efac;
+            /* Light green for copy icon */
             cursor: pointer;
             font-size: 1rem;
             margin-left: 0.5rem;
             transition: color 0.2s;
         }
+
         .copy-button:hover {
-            color: #4ade80; /* Brighter green on hover */
+            color: #4ade80;
+            /* Brighter green on hover */
         }
+
         .modal-close-btn {
             position: absolute;
             top: 1rem;
@@ -177,11 +227,13 @@
             cursor: pointer;
             transition: color 0.2s;
         }
+
         .modal-close-btn:hover {
             color: #e2e8f0;
         }
     </style>
 </head>
+
 <body class="min-h-screen">
 
     <!-- Loading Overlay -->
@@ -194,7 +246,8 @@
             <div class="text-2xl font-bold tracking-wide">Cash<span class="text-blue-400">Flow</span></div>
             <div class="flex items-center space-x-4">
                 <span id="userFullnameDisplay" class="text-gray-300"></span>
-                <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg font-bold transition">Déconnexion</button>
+                <button id="logoutBtn"
+                    class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg font-bold transition">Déconnexion</button>
             </div>
         </div>
     </nav>
@@ -211,27 +264,39 @@
                     </button>
                 </div>
                 <div class="space-y-3">
-                    <p class="flex items-center gap-2"><i class="fas fa-user text-blue-300"></i> <strong class="text-blue-300">Nom Complet:</strong> <span id="userInfoFullname"></span></p>
-                    <p class="flex items-center gap-2"><i class="fas fa-phone text-blue-300"></i> <strong class="text-blue-300">Numéro de Téléphone:</strong> <span id="userInfoPhone"></span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-user text-blue-300"></i> <strong
+                            class="text-blue-300">Nom Complet:</strong> <span id="userInfoFullname"></span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-phone text-blue-300"></i> <strong
+                            class="text-blue-300">Numéro de Téléphone:</strong> <span id="userInfoPhone"></span></p>
                     <p class="flex items-center gap-2">
-                        <i class="fas fa-code-branch text-blue-300"></i> <strong class="text-blue-300">Mon Code de Parrainage:</strong> 
+                        <i class="fas fa-code-branch text-blue-300"></i> <strong class="text-blue-300">Mon Code de
+                            Parrainage:</strong>
                         <span id="userInfoMySponsorCode"></span>
                         <button id="copySponsorCodeBtn" class="copy-button" title="Copier le code de parrainage">
                             <i class="fas fa-copy"></i>
                         </button>
                     </p>
-                    <p class="flex items-center gap-2"><i class="fas fa-handshake text-blue-300"></i> <strong class="text-blue-300">Parrain:</strong> <span id="userInfoParentSponsorCode"></span></p>
-                    <p class="flex items-center gap-2"><i class="fas fa-wallet text-blue-300"></i> <strong class="text-blue-300">Statut Paiement:</strong> <span id="userInfoPaymentStatus"></span></p>
-                    <p class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-300"></i> <strong class="text-blue-300">Statut Validation:</strong> <span id="userInfoValidationStatus"></span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-handshake text-blue-300"></i> <strong
+                            class="text-blue-300">Parrain:</strong> <span id="userInfoParentSponsorCode"></span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-wallet text-blue-300"></i> <strong
+                            class="text-blue-300">Statut Paiement:</strong> <span id="userInfoPaymentStatus"></span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-check-circle text-blue-300"></i> <strong
+                            class="text-blue-300">Statut Validation:</strong> <span
+                            id="userInfoValidationStatus"></span></p>
                 </div>
             </div>
             <div class="card-gradient rounded-xl p-6 shadow-lg">
                 <h2 class="text-xl font-semibold mb-3 text-white">Mes Gains</h2>
                 <div class="space-y-3">
-                    <p class="flex items-center gap-2"><i class="fas fa-users text-emerald-400"></i> <strong class="text-emerald-400">Nombre de filleuls validés:</strong> <span id="userValidatedReferrals">0</span></p>
-                    <p class="flex items-center gap-2"><i class="fas fa-money-bill-wave text-emerald-400"></i> <strong class="text-emerald-400">Gains totaux:</strong> <span id="userTotalEarnings">0 FCFA</span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-users text-emerald-400"></i> <strong
+                            class="text-emerald-400">Nombre de filleuls validés:</strong> <span
+                            id="userValidatedReferrals">0</span></p>
+                    <p class="flex items-center gap-2"><i class="fas fa-money-bill-wave text-emerald-400"></i> <strong
+                            class="text-emerald-400">Gains totaux:</strong> <span id="userTotalEarnings">0 FCFA</span>
+                    </p>
                 </div>
-                <p class="text-gray-400 mt-4 text-sm">Cette section affichera vos gains en fonction des filleuls validés.</p>
+                <p class="text-gray-400 mt-4 text-sm">Cette section affichera vos gains en fonction des filleuls
+                    validés.</p>
             </div>
         </div>
 
@@ -251,7 +316,8 @@
                         <!-- Referral user rows will be inserted here -->
                     </tbody>
                 </table>
-                <p id="noReferralsMessage" class="text-gray-400 text-center py-4 hidden">Vous n'avez pas encore de filleuls.</p>
+                <p id="noReferralsMessage" class="text-gray-400 text-center py-4 hidden">Vous n'avez pas encore de
+                    filleuls.</p>
             </div>
         </div>
 
@@ -261,7 +327,8 @@
             <div class="video-content" id="videoContent">
                 <div id="videoAccessContent">
                     <p id="videoOverlayMessage" class="video-overlay mb-4">
-                        Pour débloquer l'accès à la vidéo de formation, veuillez d'abord activer votre compte en effectuant le paiement.
+                        Pour débloquer l'accès à la vidéo de formation, veuillez d'abord activer votre compte en
+                        effectuant le paiement.
                     </p>
                 </div>
             </div>
@@ -274,12 +341,16 @@
         <div class="payment-overlay-content">
             <h2 id="overlayTitle" class="text-2xl font-bold mb-4 text-white">Activez votre accès aux contenus</h2>
             <p id="overlayMessage" class="text-gray-300 mb-6">
-                Pour débloquer l'accès à la vidéo de formation, veuillez effectuer un paiement de <strong class="text-emerald-400">2000 FCFA</strong> via MoMo USSD au numéro : <strong class="text-blue-300">01 91 94 26 15</strong>.
+                Pour débloquer l'accès à la vidéo de formation, veuillez effectuer un paiement de <strong
+                    class="text-emerald-400">2000 FCFA</strong> via MoMo USSD au numéro : <strong
+                    class="text-blue-300">01 91 94 26 15</strong>.
                 <br><br>
-                Dès que le paiement est effectué, veuillez saisir l'ID de transaction ci-dessous et cliquer sur "Fait" pour nous en informer.
+                Dès que le paiement est effectué, veuillez saisir l'ID de transaction ci-dessous et cliquer sur "Fait"
+                pour nous en informer.
             </p>
             <div id="transactionInputSection">
-                <input type="text" id="transactionIdInput" placeholder="Saisir l'ID de transaction ici" class="focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="transactionIdInput" placeholder="Saisir l'ID de transaction ici"
+                    class="focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <button id="submitTransactionBtn">Fait</button>
             </div>
         </div>
@@ -336,7 +407,7 @@
             const userInfoParentSponsorCode = document.getElementById('userInfoParentSponsorCode');
             const userInfoPaymentStatus = document.getElementById('userInfoPaymentStatus');
             const userInfoValidationStatus = document.getElementById('userInfoValidationStatus');
-            const copySponsorCodeBtn = document.getElementById('copySponsorCodeBtn'); 
+            const copySponsorCodeBtn = document.getElementById('copySponsorCodeBtn');
             const userValidatedReferrals = document.getElementById('userValidatedReferrals');
             const userTotalEarnings = document.getElementById('userTotalEarnings');
             const referralsTableBody = document.getElementById('referralsTable');
@@ -388,7 +459,7 @@
                     // Filter referrals to get only validated ones for earnings calculation
                     const validatedReferrals = allReferrals.filter(referral => referral.paymentStatus === 'paid_momo_ssud_validated');
                     const validatedReferralsCount = validatedReferrals.length;
-                    
+
                     // Update main user info
                     userInfoFullname.textContent = userData.fullname || 'N/A';
                     userInfoPhone.textContent = userData.phoneNumber || 'N/A';
@@ -396,7 +467,7 @@
                     userInfoParentSponsorCode.textContent = userData.parentSponsorCode || 'N/A';
                     userInfoPaymentStatus.textContent = getPaymentStatusText(userData.paymentStatus);
                     userInfoValidationStatus.textContent = getValidationStatusText(userData.validationStatus);
-                    
+
                     // Update earnings and referral count based on validated referrals
                     userValidatedReferrals.textContent = validatedReferralsCount;
                     userTotalEarnings.textContent = `${(validatedReferralsCount || 0) * 500} FCFA`;
@@ -467,8 +538,8 @@
                     `;
                     overlayTitle.textContent = "Activez votre accès aux contenus";
                     overlayMessage.innerHTML = `
-                        Pour débloquer l'accès à la vidéo de formation, veuillez effectuer un paiement de <strong class="text-emerald-400">2000 FCFA</strong> via MoMo SSUD au numéro : <strong class="text-blue-300">01 91 94 26 15</strong>.
-                        <br><br>
+                        Pour débloquer l'accès à tous nos films et séries, veuillez effectuer un paiement de <strong class="text-emerald-400">2000 FCFA</strong> via MoMo USSD au numéro : <strong class="text-blue-300">01 91 94 26 15</strong>.
+    <br><br>
                         Dès que le paiement est effectué, veuillez saisir l'ID de transaction ci-dessous et cliquer sur "Fait" pour nous en informer.
                     `;
                     transactionInputSection.classList.remove('hidden'); // Afficher le champ de saisie
@@ -586,7 +657,7 @@
             usersCollection.doc(userId).onSnapshot((doc) => {
                 if (doc.exists) {
                     const userData = doc.data();
-                    
+
                     // Update user info display
                     userInfoFullname.textContent = userData.fullname || 'N/A';
                     userInfoPhone.textContent = userData.phoneNumber || 'N/A';
@@ -594,7 +665,7 @@
                     userInfoParentSponsorCode.textContent = userData.parentSponsorCode || 'N/A';
                     userInfoPaymentStatus.textContent = getPaymentStatusText(userData.paymentStatus);
                     userInfoValidationStatus.textContent = getValidationStatusText(userData.validationStatus);
-                    
+
                     // Handle content access and overlay
                     handleContentAccess(userData);
 
@@ -643,4 +714,5 @@
         });
     </script>
 </body>
+
 </html>
